@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -528,9 +529,6 @@
 
 <div id="game-backdrop"></div>
 
-<audio id="bg-music" loop>
-    <source src="gameboy.mp3" type="audio/mpeg">
-</audio>
 <audio id="gameover-sound">
     <source src="gameover.mp3" type="audio/mpeg">
 </audio>
@@ -556,29 +554,24 @@
     window.addEventListener("resize",sc); sc();
 })();
 
-var bgMusic = document.getElementById("bg-music");
 var gameOverSound = document.getElementById("gameover-sound");
 var countdownSound = document.getElementById("countdown-sound");
 var gameMusic = document.getElementById("game-music");
 var hardcoreMusic = document.getElementById("hardcore-music");
-var musicStarted = false;
 
-function tryStartMusic(){
-    if(!musicStarted){
-        bgMusic.volume = 0.5;
-        bgMusic.play().catch(function(){});
-        musicStarted = true;
-    }
-}
-
-function playGameOver(){
-    bgMusic.pause();
-    bgMusic.currentTime = 0;
+function stopAllMusic(){
     gameMusic.pause();
     gameMusic.currentTime = 0;
     hardcoreMusic.pause();
     hardcoreMusic.currentTime = 0;
+    gameOverSound.pause();
     gameOverSound.currentTime = 0;
+    countdownSound.pause();
+    countdownSound.currentTime = 0;
+}
+
+function playGameOver(){
+    stopAllMusic();
     gameOverSound.volume = 0.8;
     gameOverSound.play().catch(function(){});
 }
@@ -692,7 +685,8 @@ function togglePause(){
 function mpPauseAll(){
     if(!mpState) return;
     mpIsPaused = true;
-    bgMusic.pause();
+    if(mode==="hardcore") hardcoreMusic.pause();
+    else gameMusic.pause();
     mpState.forEach(function(p, idx){
         if(p.dead) return;
         p.obs.forEach(function(o){ o.style.animationPlayState="paused"; });
@@ -709,7 +703,8 @@ function mpPauseAll(){
 function mpResume(){
     if(!mpState) return;
     mpIsPaused = false;
-    bgMusic.play().catch(function(){});
+    if(mode==="hardcore") hardcoreMusic.play().catch(function(){});
+    else gameMusic.play().catch(function(){});
     mpState.forEach(function(p, idx){
         if(p.dead) return;
         p.obs.forEach(function(o){ o.style.animationPlayState="running"; });
@@ -770,13 +765,7 @@ function showStart(){
     stopMp();
     isPaused = false;
     mpIsPaused = false;
-    gameOverSound.pause();
-    gameOverSound.currentTime = 0;
-    gameMusic.pause();
-    gameMusic.currentTime = 0;
-    hardcoreMusic.pause();
-    hardcoreMusic.currentTime = 0;
-    if(musicStarted) bgMusic.play().catch(function(){});
+    stopAllMusic();
     bestEasy = parseInt(localStorage.getItem("galaxyblast_best_easy")) || 0;
     bestMed  = parseInt(localStorage.getItem("galaxyblast_best_med"))  || 0;
     bestHC   = parseInt(localStorage.getItem("galaxyblast_best_hc"))   || 0;
@@ -786,22 +775,9 @@ function showStart(){
     document.getElementById("start-best-med").textContent=bestMed;
     document.getElementById("start-best-hc").textContent=bestHC;
 }
-function showTypeSelect(){
-    tryStartMusic(); 
-    hideAll();
-    document.getElementById("type-select").style.display="block";
-}
-function showModeSelect(type){
-    tryStartMusic();
-    gameType=type;
-    hideAll();
-    document.getElementById("mode-select").style.display="block";
-}
-function startTutorial(){
-    tryStartMusic(); 
-    hideAll();
-    document.getElementById("tutorial").style.display="block";
-}
+function showTypeSelect(){ stopAllMusic(); hideAll(); document.getElementById("type-select").style.display="block"; }
+function showModeSelect(type){ stopAllMusic(); gameType=type; hideAll(); document.getElementById("mode-select").style.display="block"; }
+function startTutorial(){ stopAllMusic(); hideAll(); document.getElementById("tutorial").style.display="block"; }
 
 var spScore=0,spLives=3,spDead=false,spInv=false,spCd=false,spCharX=300;
 var spChar=document.getElementById("character");
@@ -819,7 +795,6 @@ function spRandomizeObstaclePositions(){
 }
 
 function beginGame(m){
-    tryStartMusic();
     mode=m;
     isPaused=false;
     if(gameType==="multi"){ beginMp(m); return; }
@@ -952,7 +927,6 @@ function spStartScore(){
 }
 function spCountdown(cb){
     spCd=true;
-    bgMusic.pause();
     countdownSound.currentTime = 0;
     countdownSound.volume = 0.7;
     countdownSound.play().catch(function(){});
@@ -989,13 +963,7 @@ spMonster.addEventListener("animationiteration",function(){ spMonster.style.left
 function moveLeft(){ if(!isPaused && spCharX>0){ spCharX-=100; spChar.style.left=spCharX+"px"; } }
 function moveRight(){ if(!isPaused && spCharX<500){ spCharX+=100; spChar.style.left=spCharX+"px"; } }
 function restartGame(){
-    gameOverSound.pause();
-    gameOverSound.currentTime = 0;
-    gameMusic.pause();
-    gameMusic.currentTime = 0;
-    hardcoreMusic.pause();
-    hardcoreMusic.currentTime = 0;
-    bgMusic.play().catch(function(){});
+    stopAllMusic();
     document.getElementById("result").style.display="none";
     beginGame(mode);
 }
@@ -1069,6 +1037,17 @@ function mpKill(p){
     if(mpState&&mpState[0].dead&&mpState[1].dead){ playGameOver(); setTimeout(showMpResult,900); }
 }
 function mpStartPlayer(p){
+    if(p.n===1){
+        if(mode==="hardcore"){
+            hardcoreMusic.currentTime = 0;
+            hardcoreMusic.volume = 0.5;
+            hardcoreMusic.play().catch(function(){});
+        } else {
+            gameMusic.currentTime = 0;
+            gameMusic.volume = 0.5;
+            gameMusic.play().catch(function(){});
+        }
+    }
     var sp=mpSpeeds(mode);
     var stagger=["0s","0.4s","0.8s"];
     for(var i=0;i<3;i++){
@@ -1099,7 +1078,6 @@ function mpCountdown(p, cb){
     var cd=document.getElementById("mp-cd-"+p.n);
     cd.style.display="block"; cd.style.color=mode==="medium"?"#ffd700":"red";
     if(p.n===1){
-        bgMusic.pause();
         countdownSound.currentTime = 0;
         countdownSound.volume = 0.7;
         countdownSound.play().catch(function(){});
@@ -1164,9 +1142,7 @@ function stopMp(){
     mpState=null;
 }
 function restartMp(){
-    gameOverSound.pause();
-    gameOverSound.currentTime = 0;
-    bgMusic.play().catch(function(){});
+    stopAllMusic();
     document.getElementById("mp-result").style.display="none";
     beginMp(mode);
 }
