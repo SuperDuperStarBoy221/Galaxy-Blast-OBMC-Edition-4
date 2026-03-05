@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -355,10 +356,12 @@
     }
     .mp-pause-text.hardcore { color: #ff4444; text-shadow: 0 0 16px red, 0 0 32px red; }
     .mp-pause-text.medium   { color: #ffd700; text-shadow: 0 0 16px #ffd700, 0 0 32px #ffd700; }
+
+
     </style>
 </head>
 <body>
-<h5>Version_1.17.9</h5>
+<h5>Version_1.17.9.9</h5>
 <div id="mob-pause-btn">⏸</div>
 
 <div id="scale-root">
@@ -565,9 +568,20 @@ if(isTouchDevice){
 var msgs   =["Nice try!","Better Luck Next Time!","Almost there!","Don't let Asher laugh at you!","Never Give up!","Lock in!"];
 var hcMsgs =["TOO SLOW. ☠","PATHETIC.","THE FIRE WINS.","GET GOOD.","Asher is laughing. ☠"];
 var mode="easy", gameType="single";
-var bestEasy=0,bestMed=0,bestHC=0;
+var bestEasy = parseInt(localStorage.getItem("galaxyblast_best_easy")) || 0;
+var bestMed  = parseInt(localStorage.getItem("galaxyblast_best_med"))  || 0;
+var bestHC   = parseInt(localStorage.getItem("galaxyblast_best_hc"))   || 0;
+document.getElementById("start-best-easy").textContent = bestEasy;
+document.getElementById("start-best-med").textContent  = bestMed;
+document.getElementById("start-best-hc").textContent   = bestHC;
 var isPaused = false;
 var mpIsPaused = false;
+
+function saveScores(){
+    localStorage.setItem("galaxyblast_best_easy", bestEasy);
+    localStorage.setItem("galaxyblast_best_med",  bestMed);
+    localStorage.setItem("galaxyblast_best_hc",   bestHC);
+}
 
 var mobPauseBtn = document.getElementById("mob-pause-btn");
 
@@ -713,6 +727,9 @@ function showStart(){
     stopMp();
     isPaused = false;
     mpIsPaused = false;
+    bestEasy = parseInt(localStorage.getItem("galaxyblast_best_easy")) || 0;
+    bestMed  = parseInt(localStorage.getItem("galaxyblast_best_med"))  || 0;
+    bestHC   = parseInt(localStorage.getItem("galaxyblast_best_hc"))   || 0;
     hideAll();
     document.getElementById("start").style.display="block";
     document.getElementById("start-best-easy").textContent=bestEasy;
@@ -807,15 +824,18 @@ function spEnd(){
     mobUp();
     if(spCollInt) clearInterval(spCollInt);
     if(spScoreInt) clearInterval(spScoreInt);
-    if(mode==="hardcore"){ if(spScore>bestHC) bestHC=spScore; }
-    else if(mode==="medium"){ if(spScore>bestMed) bestMed=spScore; }
-    else { if(spScore>bestEasy) bestEasy=spScore; }
+
+    if(mode==="hardcore"){ if(spScore>bestHC){ bestHC=spScore; } }
+    else if(mode==="medium"){ if(spScore>bestMed){ bestMed=spScore; } }
+    else { if(spScore>bestEasy){ bestEasy=spScore; } }
+    saveScores(); 
     var b=mode==="hardcore"?bestHC:mode==="medium"?bestMed:bestEasy;
     document.getElementById("score").textContent=spScore;
     document.getElementById("best-display").textContent=b;
     document.getElementById("start-best-easy").textContent=bestEasy;
     document.getElementById("start-best-med").textContent=bestMed;
     document.getElementById("start-best-hc").textContent=bestHC;
+
     var ri=document.getElementById("result"),bl=document.getElementById("best-line"),
         rb=document.getElementById("restart-btn"),qb=document.getElementById("quit-btn");
     ri.classList.remove("hardcore","medium"); rb.classList.remove("hc-btn","med-btn"); qb.classList.remove("hc-btn","med-btn");
