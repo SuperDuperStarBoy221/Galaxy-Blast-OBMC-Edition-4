@@ -21,7 +21,7 @@
     }
     body {
         overflow: hidden;
-        display: flex;
+        display: flex;  
         flex-direction: column;
         align-items: center;
         justify-content: flex-start;
@@ -149,6 +149,37 @@
     #touch-left { left:0; } #touch-right { right:0; }
     @keyframes hcflicker { 0%,100%{border-color:red} 50%{border-color:#ff000055} }
 
+    #mob-pause-btn {
+        display: none;
+        position: fixed;
+        top: 4px;
+        right: 10px;
+        z-index: 99999;
+        width: 44px;
+        height: 30px;
+        background: rgba(0,0,0,0.75);
+        border: 2px solid rgba(180,0,255,0.85);
+        border-radius: 6px;
+        font-family: "Press Start 2P", consolas;
+        font-size: 14px;
+        color: white;
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        transition: background 0.07s, border-color 0.07s, transform 0.07s;
+    }
+    #mob-pause-btn:active { transform: scale(0.88); background: rgba(100,0,180,0.6); }
+    #mob-pause-btn.paused { border-color: #00ffcc; color: #00ffcc; }
+    #mob-pause-btn.hardcore { border-color: rgba(255,30,30,0.85); }
+    #mob-pause-btn.hardcore.paused { border-color: #ff8888; color: #ff8888; }
+    #mob-pause-btn.medium { border-color: rgba(255,210,0,0.85); }
+    #mob-pause-btn.medium.paused { border-color: #ffe866; color: #ffe866; }
+
     #mobile-controls {
         display: none;
         position: relative;
@@ -268,10 +299,68 @@
     .mpr-scrs { font-size:14px; line-height:3; margin-bottom:32px; }
     @keyframes wpulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
     #mp-result-title { animation:wpulse 1s infinite; }
+
+    #pause-overlay {
+        display: none;
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 10000;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+    #pause-overlay.visible { display: flex; }
+    #pause-text {
+        font-size: 42px;
+        color: #fff;
+        text-shadow: 0 0 20px #a000ff, 0 0 40px #a000ff;
+        letter-spacing: 6px;
+        background: transparent;
+        animation: pausePulse 1.2s ease-in-out infinite;
+    }
+    #pause-text.hardcore { color: #ff4444; text-shadow: 0 0 20px red, 0 0 40px red; }
+    #pause-text.medium   { color: #ffd700; text-shadow: 0 0 20px #ffd700, 0 0 40px #ffd700; }
+    #pause-hint {
+        font-size: 9px;
+        color: rgba(255,255,255,0.55);
+        margin-top: 18px;
+        letter-spacing: 2px;
+        background: transparent;
+    }
+    @keyframes pausePulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+
+    .mp-pause-overlay {
+        display: none;
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.45);
+        z-index: 10000;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+    .mp-pause-overlay.visible { display: flex; }
+    .mp-pause-text {
+        font-size: 22px;
+        color: #fff;
+        text-shadow: 0 0 16px #a000ff, 0 0 32px #a000ff;
+        letter-spacing: 4px;
+        background: transparent;
+        animation: pausePulse 1.2s ease-in-out infinite;
+    }
+    .mp-pause-text.hardcore { color: #ff4444; text-shadow: 0 0 16px red, 0 0 32px red; }
+    .mp-pause-text.medium   { color: #ffd700; text-shadow: 0 0 16px #ffd700, 0 0 32px #ffd700; }
     </style>
 </head>
 <body>
-<h5>Version_1.17.7</h5>
+<h5>Version_1.17.9</h5>
+<div id="mob-pause-btn">⏸</div>
+
 <div id="scale-root">
 <br/><br/><br/>
 <div id="start" style="display:block;">
@@ -346,6 +435,10 @@
     <div id="block"><img src="https://vignette3.wikia.nocookie.net/touken-ranbu/images/8/8b/Fire_gif.gif/revision/latest?cb=20150511021654" width="80" height="100"></div>
     <div id="monster"><img src="https://vignette3.wikia.nocookie.net/touken-ranbu/images/8/8b/Fire_gif.gif/revision/latest?cb=20150511021654" width="80" height="100"></div>
     <div id="countdown"></div>
+    <div id="pause-overlay">
+        <div id="pause-text">PAUSED</div>
+        <div id="pause-hint">PRESS P TO RESUME</div>
+    </div>
     <div style="position:absolute;bottom:0;left:0;width:100%;height:33px;background-color:#000;z-index:999;"></div>
     <div style="position:absolute;top:0;left:0;width:100%;height:65px;background-color:#000;z-index:999;"></div>
 </div>
@@ -374,7 +467,8 @@
     <h4>EASY: 3 lives ♥♥♥</h4><br/>
     <h4>MEDIUM: 2 lives ♥♥</h4><br/>
     <h4>HARDCORE: 1 hit = dead ☠</h4><br/>
-    <h4>MULTIPLAYER: P1=A/D, P2=←/→</h4><br/><br/>
+    <h4>MULTIPLAYER: P1=A/D, P2=←/→</h4><br/>
+    <h4>P key = PAUSE / UNPAUSE</h4><br/><br/>
     <button onclick="showStart()">← Back</button>
 </div>
 <div id="mp-wrapper">
@@ -391,6 +485,9 @@
             <div class="mp-dead-overlay" id="mp-dead-1">
                 <div class="mp-dead-title">GAME OVER</div>
                 <div class="mp-dead-score" id="mp-dead-sc-1"></div>
+            </div>
+            <div class="mp-pause-overlay" id="mp-pause-1">
+                <div class="mp-pause-text" id="mp-pause-text-1">PAUSED</div>
             </div>
             <div style="position:absolute;bottom:0;left:0;width:100%;height:33px;background-color:#000;z-index:999;"></div>
             <div style="position:absolute;top:0;left:0;width:100%;height:65px;background-color:#000;z-index:999;"></div>
@@ -410,6 +507,9 @@
             <div class="mp-dead-overlay" id="mp-dead-2">
                 <div class="mp-dead-title">GAME OVER</div>
                 <div class="mp-dead-score" id="mp-dead-sc-2"></div>
+            </div>
+            <div class="mp-pause-overlay" id="mp-pause-2">
+                <div class="mp-pause-text" id="mp-pause-text-2">PAUSED</div>
             </div>
             <div style="position:absolute;bottom:0;left:0;width:100%;height:33px;background-color:#000;z-index:999;"></div>
             <div style="position:absolute;top:0;left:0;width:100%;height:65px;background-color:#000;z-index:999;"></div>
@@ -466,15 +566,109 @@ var msgs   =["Nice try!","Better Luck Next Time!","Almost there!","Don't let Ash
 var hcMsgs =["TOO SLOW. ☠","PATHETIC.","THE FIRE WINS.","GET GOOD.","Asher is laughing. ☠"];
 var mode="easy", gameType="single";
 var bestEasy=0,bestMed=0,bestHC=0;
+var isPaused = false;
+var mpIsPaused = false;
 
+var mobPauseBtn = document.getElementById("mob-pause-btn");
+
+function showMobPauseBtn(visible, m) {
+    if (visible && isTouchDevice) {
+        mobPauseBtn.style.display = "flex";
+        mobPauseBtn.classList.remove("hardcore", "medium", "paused");
+        if (m === "hardcore") mobPauseBtn.classList.add("hardcore");
+        else if (m === "medium") mobPauseBtn.classList.add("medium");
+    } else {
+        mobPauseBtn.style.display = "none";
+    }
+}
+
+function updateMobPauseBtnState() {
+    if (isPaused || mpIsPaused) {
+        mobPauseBtn.textContent = "▶";
+        mobPauseBtn.classList.add("paused");
+    } else {
+        mobPauseBtn.textContent = "⏸";
+        mobPauseBtn.classList.remove("paused");
+    }
+}
+
+mobPauseBtn.addEventListener("touchstart", function(e) {
+    e.preventDefault();
+    togglePause();
+}, { passive: false });
+mobPauseBtn.addEventListener("mousedown", function(e) {
+    togglePause();
+});
+
+function spPause(){
+    if(spDead || spCd) return;
+    isPaused = true;
+    spBlock.style.animationPlayState   = "paused";
+    spMeteor.style.animationPlayState  = "paused";
+    spMonster.style.animationPlayState = "paused";
+    if(spScoreInt){ clearInterval(spScoreInt); spScoreInt=null; }
+    var po = document.getElementById("pause-overlay");
+    var pt = document.getElementById("pause-text");
+    pt.classList.remove("hardcore","medium");
+    if(mode==="hardcore") pt.classList.add("hardcore");
+    else if(mode==="medium") pt.classList.add("medium");
+    po.classList.add("visible");
+    updateMobPauseBtnState();
+}
+function spResume(){
+    isPaused = false;
+    spBlock.style.animationPlayState   = "running";
+    spMeteor.style.animationPlayState  = "running";
+    spMonster.style.animationPlayState = "running";
+    spStartScore();
+    document.getElementById("pause-overlay").classList.remove("visible");
+    updateMobPauseBtnState();
+}
+function togglePause(){
+    if(gameType === "single"){
+        if(spDead || spCd) return;
+        if(isPaused) spResume(); else spPause();
+    } else if(gameType === "multi"){
+        if(!mpState) return;
+        if(mpIsPaused) mpResume(); else mpPauseAll();
+    }
+}
+
+function mpPauseAll(){
+    if(!mpState) return;
+    mpIsPaused = true;
+    mpState.forEach(function(p, idx){
+        if(p.dead) return;
+        p.obs.forEach(function(o){ o.style.animationPlayState="paused"; });
+        clearInterval(p.scoreInt); p.scoreInt=null;
+        var po = document.getElementById("mp-pause-"+(idx+1));
+        var pt = document.getElementById("mp-pause-text-"+(idx+1));
+        pt.classList.remove("hardcore","medium");
+        if(mode==="hardcore") pt.classList.add("hardcore");
+        else if(mode==="medium") pt.classList.add("medium");
+        po.classList.add("visible");
+    });
+    updateMobPauseBtnState();
+}
+function mpResume(){
+    if(!mpState) return;
+    mpIsPaused = false;
+    mpState.forEach(function(p, idx){
+        if(p.dead) return;
+        p.obs.forEach(function(o){ o.style.animationPlayState="running"; });
+        p.scoreInt = setInterval(function(){ if(!p.dead){ p.score++; p.scoreEl.textContent=p.score; } },300);
+        document.getElementById("mp-pause-"+(idx+1)).classList.remove("visible");
+    });
+    updateMobPauseBtnState();
+}
 
 var mobInterval = null;
 function mobDown(dir){
-    if(spDead || gameType !== "single") return;
+    if(spDead || isPaused || gameType !== "single") return;
     if(dir==="left") moveLeft(); else moveRight();
     if(mobInterval) clearInterval(mobInterval);
     mobInterval = setInterval(function(){
-        if(spDead){ clearInterval(mobInterval); mobInterval=null; return; }
+        if(spDead || isPaused){ clearInterval(mobInterval); mobInterval=null; return; }
         if(dir==="left") moveLeft(); else moveRight();
     }, 160);
 }
@@ -513,9 +707,12 @@ function hideAll(){
     ["start","type-select","mode-select","hud","game","result","tutorial","mp-wrapper","mp-result","mobile-controls"]
     .forEach(function(id){ document.getElementById(id).style.display="none"; });
     document.getElementById("game-backdrop").style.display="none";
+    showMobPauseBtn(false);
 }
 function showStart(){
     stopMp();
+    isPaused = false;
+    mpIsPaused = false;
     hideAll();
     document.getElementById("start").style.display="block";
     document.getElementById("start-best-easy").textContent=bestEasy;
@@ -543,6 +740,7 @@ function spRandomizeObstaclePositions(){
 
 function beginGame(m){
     mode=m;
+    isPaused=false;
     if(gameType==="multi"){ beginMp(m); return; }
     spScore=0; spLives=m==="easy"?3:m==="medium"?2:1;
     spDead=false; spInv=false; spCd=false; spCharX=300;
@@ -557,6 +755,10 @@ function beginGame(m){
     ge.style.display="block"; hu.style.display="flex";
     document.getElementById("game-backdrop").style.display="block";
     showMobileControls(true, m);
+    showMobPauseBtn(true, m);
+    updateMobPauseBtnState();
+
+    document.getElementById("pause-overlay").classList.remove("visible");
 
     spBlock.style.animation="none";
     spMeteor.style.animation="none";
@@ -590,7 +792,7 @@ function spFlash(){
     setTimeout(function(){ f.style.opacity="0"; spChar.classList.remove("hit"); },180);
 }
 function spHit(){
-    if(spInv||spDead) return;
+    if(spInv||spDead||isPaused) return;
     spFlash();
     if(mode==="hardcore"){ spEnd(); return; }
     spLives--; spUpdateHUD();
@@ -599,6 +801,9 @@ function spHit(){
 }
 function spEnd(){
     spDead=true;
+    isPaused=false;
+    document.getElementById("pause-overlay").classList.remove("visible");
+    showMobPauseBtn(false);
     mobUp();
     if(spCollInt) clearInterval(spCollInt);
     if(spScoreInt) clearInterval(spScoreInt);
@@ -635,7 +840,7 @@ function spGetCol(leftPx){ return Math.round(parseInt(leftPx) / 100); }
 function spStartCollision(){
     if(spCollInt) clearInterval(spCollInt);
     spCollInt = setInterval(function(){
-        if(spDead||spInv||gameType!=="single") return;
+        if(spDead||spInv||isPaused||gameType!=="single") return;
         var obs=[
             {el:spBlock,   offset:50},
             {el:spMeteor,  offset:60},
@@ -657,7 +862,7 @@ var spScoreInt = null;
 function spStartScore(){
     if(spScoreInt) clearInterval(spScoreInt);
     spScoreInt = setInterval(function(){
-        if(!spDead&&!spInv&&!spCd&&gameType==="single"){ spScore++; spUpdateHUD(); }
+        if(!spDead&&!spInv&&!spCd&&!isPaused&&gameType==="single"){ spScore++; spUpdateHUD(); }
     },300);
 }
 function spCountdown(cb){
@@ -683,8 +888,8 @@ function spStartAnims(){
 spBlock.addEventListener("animationiteration",function(){ spBlock.style.left=(Math.floor(Math.random()*6)*100)+"px"; spUpdateHUD(); });
 spMeteor.addEventListener("animationiteration",function(){ spMeteor.style.left=(Math.floor(Math.random()*6)*100)+"px"; });
 spMonster.addEventListener("animationiteration",function(){ spMonster.style.left=(Math.floor(Math.random()*6)*100)+"px"; });
-function moveLeft(){ if(spCharX>0){ spCharX-=100; spChar.style.left=spCharX+"px"; } }
-function moveRight(){ if(spCharX<500){ spCharX+=100; spChar.style.left=spCharX+"px"; } }
+function moveLeft(){ if(!isPaused && spCharX>0){ spCharX-=100; spChar.style.left=spCharX+"px"; } }
+function moveRight(){ if(!isPaused && spCharX<500){ spCharX+=100; spChar.style.left=spCharX+"px"; } }
 function restartGame(){ document.getElementById("result").style.display="none"; beginGame(mode); }
 
 var MP_COLS=5, MP_STEP=52, MP_MID=2;
@@ -740,7 +945,7 @@ function mpFlash(p){
     setTimeout(function(){ p.flashEl.style.opacity="0"; p.charEl.classList.remove("hit"); },180);
 }
 function mpHit(p){
-    if(p.invincible||p.dead) return;
+    if(p.invincible||p.dead||mpIsPaused) return;
     mpFlash(p);
     if(mode==="hardcore"){ mpKill(p); return; }
     p.lives--; mpUpdateLives(p);
@@ -765,6 +970,7 @@ function mpStartPlayer(p){
     }
     p.obs.forEach(function(el,i){
         el.addEventListener("animationiteration",function(){
+            if(mpIsPaused) return;
             var c=Math.floor(Math.random()*MP_COLS);
             p.obsCol[i]=c; el.style.left=(c*MP_STEP+4)+"px";
         });
@@ -772,14 +978,14 @@ function mpStartPlayer(p){
     p.obs.forEach(function(el){ el.style.top="-60px"; el.style.animationPlayState="running"; });
     var CHAR_MID = (420 - 52 - 35) + 26;
     p.collInt=setInterval(function(){
-        if(p.dead||p.invincible) return;
+        if(p.dead||p.invincible||mpIsPaused) return;
         for(var i=0;i<p.obs.length;i++){
             var obsTop=parseFloat(window.getComputedStyle(p.obs[i]).top);
             var obsMid=obsTop + 27;
             if(p.obsCol[i]===p.col && Math.abs(obsMid - CHAR_MID) < 36){ mpHit(p); break; }
         }
     },16);
-    p.scoreInt=setInterval(function(){ if(!p.dead){ p.score++; p.scoreEl.textContent=p.score; } },300);
+    p.scoreInt=setInterval(function(){ if(!p.dead && !mpIsPaused){ p.score++; p.scoreEl.textContent=p.score; } },300);
 }
 function mpCountdown(p, cb){
     var cd=document.getElementById("mp-cd-"+p.n);
@@ -794,6 +1000,7 @@ function mpCountdown(p, cb){
 }
 function showMpResult(){
     ["start","type-select","mode-select","hud","game","tutorial","mp-wrapper"].forEach(function(id){ document.getElementById(id).style.display="none"; });
+    showMobPauseBtn(false);
     var p1=mpState[0],p2=mpState[1];
     var title=document.getElementById("mp-result-title");
     var w,c;
@@ -808,7 +1015,7 @@ function showMpResult(){
     document.getElementById("mp-result").style.display="block";
 }
 function beginMp(m){
-    mode=m; stopMp();
+    mode=m; mpIsPaused=false; stopMp();
     var cls=m==="hardcore"?"hardcore":m==="medium"?"medium":"";
     [1,2].forEach(function(n){
         ["mp-game-"+n,"mp-hud-"+n,"mp-hs-"+n].forEach(function(id){
@@ -816,6 +1023,7 @@ function beginMp(m){
             if(cls) e.classList.add(cls);
         });
         document.getElementById("mp-dead-"+n).classList.remove("show");
+        document.getElementById("mp-pause-"+(n)).classList.remove("visible");
         Array.from(document.querySelectorAll("#mp-game-"+n+" .mp-obs")).forEach(function(o){ o.remove(); });
         document.getElementById("mp-score-"+n).textContent="0";
     });
@@ -827,6 +1035,8 @@ function beginMp(m){
     hideAll();
     document.getElementById("mp-wrapper").style.display="flex";
     document.getElementById("game-backdrop").style.display="block";
+    showMobPauseBtn(true, m);
+    updateMobPauseBtnState();
     mpCountdown(p1, function(){ mpStartPlayer(p1); });
     mpCountdown(p2, function(){ mpStartPlayer(p2); });
 }
@@ -842,6 +1052,11 @@ function stopMp(){
 function restartMp(){ document.getElementById("mp-result").style.display="none"; beginMp(mode); }
 
 document.addEventListener("keydown",function(e){
+    if(e.key==="p" || e.key==="P"){
+        togglePause();
+        return;
+    }
+    if(isPaused || mpIsPaused) return; 
     if(gameType==="single"&&!spDead){
         if(e.key==="ArrowLeft") moveLeft();
         if(e.key==="ArrowRight") moveRight();
@@ -857,4 +1072,3 @@ document.addEventListener("keydown",function(e){
 </script>
 </body>
 </html>
-
