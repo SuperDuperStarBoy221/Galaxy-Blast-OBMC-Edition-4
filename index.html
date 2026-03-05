@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -356,8 +354,6 @@
     }
     .mp-pause-text.hardcore { color: #ff4444; text-shadow: 0 0 16px red, 0 0 32px red; }
     .mp-pause-text.medium   { color: #ffd700; text-shadow: 0 0 16px #ffd700, 0 0 32px #ffd700; }
-
-
     </style>
 </head>
 <body>
@@ -531,7 +527,22 @@
 </div>
 
 <div id="game-backdrop"></div>
-<audio id="bg-music" loop><source src="gameboy.mp3" type="audio/mpeg"></audio>
+
+<audio id="bg-music" loop>
+    <source src="gameboy.mp3" type="audio/mpeg">
+</audio>
+<audio id="gameover-sound">
+    <source src="gameover.mp3" type="audio/mpeg">
+</audio>
+<audio id="countdown-sound">
+    <source src="countdown.mp3" type="audio/mpeg">
+</audio>
+<audio id="game-music" loop>
+    <source src="gamemusic.mp3" type="audio/mpeg">
+</audio>
+<audio id="hardcore-music" loop>
+    <source src="hardcore.mp3" type="audio/mpeg">
+</audio>
 
 <script>
 (function(){
@@ -544,7 +555,33 @@
     }
     window.addEventListener("resize",sc); sc();
 })();
-document.getElementById("bg-music").play().catch(function(){});
+
+var bgMusic = document.getElementById("bg-music");
+var gameOverSound = document.getElementById("gameover-sound");
+var countdownSound = document.getElementById("countdown-sound");
+var gameMusic = document.getElementById("game-music");
+var hardcoreMusic = document.getElementById("hardcore-music");
+var musicStarted = false;
+
+function tryStartMusic(){
+    if(!musicStarted){
+        bgMusic.volume = 0.5;
+        bgMusic.play().catch(function(){});
+        musicStarted = true;
+    }
+}
+
+function playGameOver(){
+    bgMusic.pause();
+    bgMusic.currentTime = 0;
+    gameMusic.pause();
+    gameMusic.currentTime = 0;
+    hardcoreMusic.pause();
+    hardcoreMusic.currentTime = 0;
+    gameOverSound.currentTime = 0;
+    gameOverSound.volume = 0.8;
+    gameOverSound.play().catch(function(){});
+}
 
 var isTouchDevice = (window.matchMedia && window.matchMedia("(pointer: coarse)").matches)
                     || ("ontouchstart" in window)
@@ -621,6 +658,8 @@ function spPause(){
     spMeteor.style.animationPlayState  = "paused";
     spMonster.style.animationPlayState = "paused";
     if(spScoreInt){ clearInterval(spScoreInt); spScoreInt=null; }
+    if(mode==="easy" || mode==="medium") gameMusic.pause();
+    else hardcoreMusic.pause();
     var po = document.getElementById("pause-overlay");
     var pt = document.getElementById("pause-text");
     pt.classList.remove("hardcore","medium");
@@ -635,6 +674,8 @@ function spResume(){
     spMeteor.style.animationPlayState  = "running";
     spMonster.style.animationPlayState = "running";
     spStartScore();
+    if(mode==="easy" || mode==="medium") gameMusic.play().catch(function(){});
+    else hardcoreMusic.play().catch(function(){});
     document.getElementById("pause-overlay").classList.remove("visible");
     updateMobPauseBtnState();
 }
@@ -651,6 +692,7 @@ function togglePause(){
 function mpPauseAll(){
     if(!mpState) return;
     mpIsPaused = true;
+    bgMusic.pause();
     mpState.forEach(function(p, idx){
         if(p.dead) return;
         p.obs.forEach(function(o){ o.style.animationPlayState="paused"; });
@@ -667,6 +709,7 @@ function mpPauseAll(){
 function mpResume(){
     if(!mpState) return;
     mpIsPaused = false;
+    bgMusic.play().catch(function(){});
     mpState.forEach(function(p, idx){
         if(p.dead) return;
         p.obs.forEach(function(o){ o.style.animationPlayState="running"; });
@@ -727,6 +770,13 @@ function showStart(){
     stopMp();
     isPaused = false;
     mpIsPaused = false;
+    gameOverSound.pause();
+    gameOverSound.currentTime = 0;
+    gameMusic.pause();
+    gameMusic.currentTime = 0;
+    hardcoreMusic.pause();
+    hardcoreMusic.currentTime = 0;
+    if(musicStarted) bgMusic.play().catch(function(){});
     bestEasy = parseInt(localStorage.getItem("galaxyblast_best_easy")) || 0;
     bestMed  = parseInt(localStorage.getItem("galaxyblast_best_med"))  || 0;
     bestHC   = parseInt(localStorage.getItem("galaxyblast_best_hc"))   || 0;
@@ -736,9 +786,22 @@ function showStart(){
     document.getElementById("start-best-med").textContent=bestMed;
     document.getElementById("start-best-hc").textContent=bestHC;
 }
-function showTypeSelect(){ hideAll(); document.getElementById("type-select").style.display="block"; }
-function showModeSelect(type){ gameType=type; hideAll(); document.getElementById("mode-select").style.display="block"; }
-function startTutorial(){ hideAll(); document.getElementById("tutorial").style.display="block"; }
+function showTypeSelect(){
+    tryStartMusic(); 
+    hideAll();
+    document.getElementById("type-select").style.display="block";
+}
+function showModeSelect(type){
+    tryStartMusic();
+    gameType=type;
+    hideAll();
+    document.getElementById("mode-select").style.display="block";
+}
+function startTutorial(){
+    tryStartMusic(); 
+    hideAll();
+    document.getElementById("tutorial").style.display="block";
+}
 
 var spScore=0,spLives=3,spDead=false,spInv=false,spCd=false,spCharX=300;
 var spChar=document.getElementById("character");
@@ -756,6 +819,7 @@ function spRandomizeObstaclePositions(){
 }
 
 function beginGame(m){
+    tryStartMusic();
     mode=m;
     isPaused=false;
     if(gameType==="multi"){ beginMp(m); return; }
@@ -824,6 +888,7 @@ function spEnd(){
     mobUp();
     if(spCollInt) clearInterval(spCollInt);
     if(spScoreInt) clearInterval(spScoreInt);
+    playGameOver();
 
     if(mode==="hardcore"){ if(spScore>bestHC){ bestHC=spScore; } }
     else if(mode==="medium"){ if(spScore>bestMed){ bestMed=spScore; } }
@@ -887,6 +952,10 @@ function spStartScore(){
 }
 function spCountdown(cb){
     spCd=true;
+    bgMusic.pause();
+    countdownSound.currentTime = 0;
+    countdownSound.volume = 0.7;
+    countdownSound.play().catch(function(){});
     var cd=document.getElementById("countdown");
     cd.style.display="block"; cd.style.color=mode==="medium"?"#ffd700":"red";
     var n=3; cd.textContent=n;
@@ -902,6 +971,15 @@ function spStartAnims(){
     spMeteor.style.animation="meteor "+sp[0]+" infinite linear";
     spBlock.style.animation="slide "+sp[1]+" infinite linear";
     spMonster.style.animation="monster "+sp[2]+" infinite linear";
+    if(mode==="easy" || mode==="medium"){
+        gameMusic.currentTime = 0;
+        gameMusic.volume = 0.5;
+        gameMusic.play().catch(function(){});
+    } else if(mode==="hardcore"){
+        hardcoreMusic.currentTime = 0;
+        hardcoreMusic.volume = 0.5;
+        hardcoreMusic.play().catch(function(){});
+    }
     spStartCollision();
     spStartScore();
 }
@@ -910,7 +988,17 @@ spMeteor.addEventListener("animationiteration",function(){ spMeteor.style.left=(
 spMonster.addEventListener("animationiteration",function(){ spMonster.style.left=(Math.floor(Math.random()*6)*100)+"px"; });
 function moveLeft(){ if(!isPaused && spCharX>0){ spCharX-=100; spChar.style.left=spCharX+"px"; } }
 function moveRight(){ if(!isPaused && spCharX<500){ spCharX+=100; spChar.style.left=spCharX+"px"; } }
-function restartGame(){ document.getElementById("result").style.display="none"; beginGame(mode); }
+function restartGame(){
+    gameOverSound.pause();
+    gameOverSound.currentTime = 0;
+    gameMusic.pause();
+    gameMusic.currentTime = 0;
+    hardcoreMusic.pause();
+    hardcoreMusic.currentTime = 0;
+    bgMusic.play().catch(function(){});
+    document.getElementById("result").style.display="none";
+    beginGame(mode);
+}
 
 var MP_COLS=5, MP_STEP=52, MP_MID=2;
 var mpState=null;
@@ -978,7 +1066,7 @@ function mpKill(p){
     p.obs.forEach(function(o){ o.style.animationPlayState="paused"; });
     p.deadScEl.textContent="SCORE: "+p.score;
     p.deadEl.classList.add("show");
-    if(mpState&&mpState[0].dead&&mpState[1].dead) setTimeout(showMpResult,900);
+    if(mpState&&mpState[0].dead&&mpState[1].dead){ playGameOver(); setTimeout(showMpResult,900); }
 }
 function mpStartPlayer(p){
     var sp=mpSpeeds(mode);
@@ -1010,6 +1098,12 @@ function mpStartPlayer(p){
 function mpCountdown(p, cb){
     var cd=document.getElementById("mp-cd-"+p.n);
     cd.style.display="block"; cd.style.color=mode==="medium"?"#ffd700":"red";
+    if(p.n===1){
+        bgMusic.pause();
+        countdownSound.currentTime = 0;
+        countdownSound.volume = 0.7;
+        countdownSound.play().catch(function(){});
+    }
     var n=3; cd.textContent=n;
     var t=setInterval(function(){
         n--;
@@ -1069,7 +1163,13 @@ function stopMp(){
     });
     mpState=null;
 }
-function restartMp(){ document.getElementById("mp-result").style.display="none"; beginMp(mode); }
+function restartMp(){
+    gameOverSound.pause();
+    gameOverSound.currentTime = 0;
+    bgMusic.play().catch(function(){});
+    document.getElementById("mp-result").style.display="none";
+    beginMp(mode);
+}
 
 document.addEventListener("keydown",function(e){
     if(e.key==="p" || e.key==="P"){
